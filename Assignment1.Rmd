@@ -1,0 +1,118 @@
+---
+title: "Assignment1"
+author: "Ramón Roales-Welsch"
+date: "21 Dezember 2017"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warnings=FALSE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r ,include=FALSE}
+library(readr)
+library(dplyr)
+library(tidytext)
+library(ggplot2)
+library(tidyr)
+library(scales)
+library(stringr)
+```
+
+```{r ,cache=TRUE, include=FALSE}
+blogs <- read_rds("df_blogs_test.RDS")
+news <- read_rds("df_news_test.RDS")
+twitter <- read_rds("df_twitter_test.RDS")
+df_blogs <- data_frame(line = 1:length(blogs), text = blogs)
+df_news <- data_frame(line = 1:length(news), text = news)
+df_twitter <- data_frame(line = 1:length(twitter), text = twitter)
+rm(blogs,news,twitter)
+df_blogs <- df_blogs %>% unnest_tokens(word, text) %>% anti_join(stop_words)
+df_news <- df_news %>% unnest_tokens(word, text) %>% anti_join(stop_words)
+df_twitter <- df_twitter %>% unnest_tokens(word, text) %>% anti_join(stop_words)
+```
+
+
+```{r ,cache=TRUE, include=FALSE}
+frequency <- bind_rows(mutate(df_blogs, author = "Blogs"),
+                       mutate(df_news, author = "News"), 
+                       mutate(df_twitter, author = "Twitter")) %>% 
+        mutate(word = str_extract(word, "[a-z']+")) %>%
+        count(author, word) %>%
+        group_by(author) %>%
+        mutate(proportion = n / sum(n)) %>% 
+        select(-n) %>% 
+        spread(author, proportion) %>% 
+        gather(author, proportion, `Blogs`:`News`)
+```
+
+## Including Plots
+
+
+```{r , echo=FALSE, message=FALSE}
+par(mfrow=c(3,1))
+df_blogs %>%
+        anti_join(stop_words) %>%
+        count(word, sort = TRUE) %>%
+        head(10) %>%
+        mutate(word = reorder(word, n)) %>%
+        ggplot(aes(word, n)) +
+        geom_col() +
+        ggtitle("Word Count for Online Blogs Sample") +
+        xlab(NULL) +
+        coord_flip()
+
+df_news %>%
+        anti_join(stop_words) %>%
+        count(word, sort = TRUE) %>%
+        head(10) %>%
+        mutate(word = reorder(word, n)) %>%
+        ggplot(aes(word, n)) +
+        geom_col() +
+        ggtitle("Word Count for Online News Sample") +
+        xlab(NULL) +
+        coord_flip()
+
+df_twitter %>%
+        anti_join(stop_words) %>%
+        count(word, sort = TRUE) %>%
+        head(10) %>%
+        mutate(word = reorder(word, n)) %>%
+        ggplot(aes(word, n)) +
+        geom_col() +
+        ggtitle("Word Count for Twitter Sample") +
+        xlab(NULL) +
+        coord_flip()
+dev.off()
+```
+
+
+
+```{r , echo=FALSE, message=FALSE}
+par(mfrow=c(1,1))
+ggplot(frequency, aes(x = proportion, y = `Twitter`, color = abs(`Twitter` - proportion))) +
+        geom_abline(color = "gray40", lty = 2) +
+        geom_jitter(alpha = 0.1, size = 2.5, width = 0.3, height = 0.3) +
+        geom_text(aes(label = word), check_overlap = TRUE, vjust = 1.5) +
+        scale_x_log10(labels = percent_format()) +
+        scale_y_log10(labels = percent_format()) +
+        scale_color_gradient(limits = c(0, 0.001), low = "darkslategray4", high = "gray75") +
+        facet_wrap(~author, ncol = 2) +
+        theme(legend.position="none") +
+        labs(y = "Twitter", x = NULL)
+dev.off()
+```
+
+## How to solve the Assignment
+
+* Source: https://www.tidytextmining.com/
+* On Basis of this book methods will be applied.
+* For each medium (Blog, News, Twitter) a prediction library is build
+* A library for own texts is build
+* Libraries are predicting connectively
