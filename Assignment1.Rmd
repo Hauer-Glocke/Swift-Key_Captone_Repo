@@ -1,101 +1,287 @@
 ---
-title: "Assignment1"
+title: "Assignment1 - Overview Data"
 author: "Ramón Roales-Welsch"
-date: "21 Dezember 2017"
-output: html_document
+date: "09 January 2018"
+output:
+  html_document:
+    toc: true
+    toc_depth: 2
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warnings=FALSE)
+knitr::opts_chunk$set(echo = FALSE, warning=FALSE, messages = FALSE)
 ```
 
-## R Markdown
-
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
-
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
-
-```{r ,include=FALSE}
+```{r ,include=FALSE, cache=TRUE}
+library(knitr)
 library(readr)
 library(dplyr)
 library(tidytext)
+library(tokenizers)
 library(ggplot2)
 library(tidyr)
 library(scales)
 library(stringr)
+library(grid)
+library(gridExtra)
+
+source('create_example.R')
+read_files()
+gc()
+
 ```
 
-```{r ,cache=TRUE, include=FALSE}
-blogs <- read_rds("df_blogs_test.RDS")
-news <- read_rds("df_news_test.RDS")
-twitter <- read_rds("df_twitter_test.RDS")
-df_blogs <- data_frame(line = 1:length(blogs), text = blogs)
-df_news <- data_frame(line = 1:length(news), text = news)
-df_twitter <- data_frame(line = 1:length(twitter), text = twitter)
-rm(blogs,news,twitter)
-df_blogs <- df_blogs %>% unnest_tokens(word, text) %>% anti_join(stop_words)
-df_news <- df_news %>% unnest_tokens(word, text) %>% anti_join(stop_words)
-df_twitter <- df_twitter %>% unnest_tokens(word, text) %>% anti_join(stop_words)
-```
+```{r ,include=FALSE}
 
+##Blogs
+lines_df_blogs <- length(df_blogs)
+df_blogs_1w <- tokenize_ngrams(df_blogs, n=1, simplify=TRUE)
+df_blogs_2w <- unlist(tokenize_ngrams(df_blogs, n=2, simplify=TRUE))
+df_blogs_3w <- unlist(tokenize_ngrams(df_blogs, n=3, simplify=TRUE))
+words_per_line_blogs <- integer(length(df_blogs_1w))
+for(i in seq(length(df_blogs_1w))){
+        words_per_line_blogs[i] <- length(df_blogs_1w[[i]])
+}
+df_blogs_1w <- unlist(df_blogs_1w)
+words_df_blogs <- length(df_blogs_1w)
+word_length_blogs <- mean(nchar(df_blogs_1w))
+Blogs <- c(lines_df_blogs, words_df_blogs, mean(words_per_line_blogs), word_length_blogs)
+rm(df_blogs, lines_df_blogs, words_df_blogs, words_per_line_blogs, word_length_blogs)
 
-```{r ,cache=TRUE, include=FALSE}
-frequency <- bind_rows(mutate(df_blogs, author = "Blogs"),
-                       mutate(df_news, author = "News"), 
-                       mutate(df_twitter, author = "Twitter")) %>% 
-        mutate(word = str_extract(word, "[a-z']+")) %>%
+##News
+lines_df_news <- length(df_news)
+df_news_1w <- tokenize_ngrams(df_news, n=1, simplify=TRUE)
+df_news_2w <- unlist(tokenize_ngrams(df_news, n=2, simplify=TRUE))
+df_news_3w <- unlist(tokenize_ngrams(df_news, n=3, simplify=TRUE))
+words_per_line_news <- integer(length(df_news_1w))
+for(i in seq(length(df_news_1w))){
+        words_per_line_news[i] <- length(df_news_1w[[i]])
+}
+df_news_1w <- unlist(df_news_1w)
+words_df_news <- length(df_news_1w)
+word_length_news <- mean(nchar(df_news_1w))
+News <- c(lines_df_news,words_df_news,mean(words_per_line_news),word_length_news)
+rm(df_news, lines_df_news,words_df_news,words_per_line_news,word_length_news)
+
+##Twitter
+lines_df_twitter <- length(df_twitter)
+df_twitter_1w <- tokenize_ngrams(df_twitter, n=1, simplify=TRUE)
+df_twitter_2w <- unlist(tokenize_ngrams(df_twitter, n=2, simplify=TRUE))
+df_twitter_3w <- unlist(tokenize_ngrams(df_twitter, n=3, simplify=TRUE))
+words_per_line_twitter <- integer(length(df_twitter_1w))
+for(i in seq(length(df_twitter_1w))){
+        words_per_line_twitter[i] <- length(df_twitter_1w[[i]])
+}
+df_twitter_1w <- unlist(df_twitter_1w)
+words_df_twitter <- length(df_twitter_1w)
+word_length_twitter <- mean(nchar(df_twitter_1w))
+Twitter <- c(lines_df_twitter,words_df_twitter,mean(words_per_line_twitter),word_length_twitter)
+rm(df_twitter, lines_df_twitter,words_df_twitter,words_per_line_twitter,word_length_twitter)
+
+##Overview Table
+overview <- data.frame(rbind(Blogs, News, Twitter))
+row.names(overview) <- c("Blogs", "News", "Twitter")
+
+##Frequency Table
+frequency <- bind_rows(mutate(data.frame(word = df_blogs_1w), author = "Blogs"),
+                       mutate(data.frame(word = df_news_1w), author = "News"), 
+                       mutate(data.frame(word = df_twitter_1w), author = "Twitter")) %>% 
+        mutate(word = str_extract(word,"[a-z']+")) %>%
         count(author, word) %>%
         group_by(author) %>%
         mutate(proportion = n / sum(n)) %>% 
         select(-n) %>% 
         spread(author, proportion) %>% 
         gather(author, proportion, `Blogs`:`News`)
+
+gc()
 ```
 
-## Including Plots
+# Executive Summary
+
+This is the first assignment for the Data Science Specialization Captstone Project. The project consist of a Machine Learning Application for Word Suggestions (as you have them on your phone). This assignment presents the underlying datasets from online sources:
+
+* en_US.blogs.txt
+* en_US.news.txt
+* en_US.twitter.txt
+
+The datasets are provided for the Capstone Project and can be retrieved from [Coursera](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip  "Coursera Swiftkey Datasample").
+
+# Data Summary
+
+```{r echo=FALSE, results='asis'}
+kable(overview, caption = "Overview Table for the three Datasets")
+
+```
+
+# Data Plots
+
+My first attempts were with the package 'tidytext' following instructions from https://www.tidytextmining.com/.  Nonetheless the implementation of bigrams and trigrams seemed much easier with the 'tokenizer' package. Therefore I present the results from the 'tokenizer' package.
+
+## Results from counting single words (With Code Example)
 
 
-```{r , echo=FALSE, message=FALSE}
-par(mfrow=c(3,1))
-df_blogs %>%
+```
+# Code example
+
+##Tokenizing
+
+df_twitter <- readLines('source')
+df_twitter_1w <- unlist(tokenize_ngrams(df_twitter, n=1, simplify=TRUE))
+
+##Visualization
+
+data.frame(word=df_twitter_1w) %>%
         anti_join(stop_words) %>%
         count(word, sort = TRUE) %>%
         head(10) %>%
         mutate(word = reorder(word, n)) %>%
         ggplot(aes(word, n)) +
         geom_col() +
-        ggtitle("Word Count for Online Blogs Sample") +
         xlab(NULL) +
-        coord_flip()
+        coord_flip() +
+        ggtitle('Top 10 Words on Twitter (tokenizer)')
 
-df_news %>%
+```
+
+```{r , echo=FALSE, message=FALSE, figure=TRUE, fig.align = "center", fig.width = 6, fig.asp =  1.2}
+
+p1 <- data.frame(word=df_blogs_1w) %>%
         anti_join(stop_words) %>%
         count(word, sort = TRUE) %>%
         head(10) %>%
         mutate(word = reorder(word, n)) %>%
         ggplot(aes(word, n)) +
         geom_col() +
-        ggtitle("Word Count for Online News Sample") +
         xlab(NULL) +
-        coord_flip()
+        coord_flip() +
+        ggtitle('Top 10 Words in Blogs (tokenizer)')
 
-df_twitter %>%
+p2 <- data.frame(word=df_news_1w) %>%
         anti_join(stop_words) %>%
         count(word, sort = TRUE) %>%
         head(10) %>%
         mutate(word = reorder(word, n)) %>%
         ggplot(aes(word, n)) +
         geom_col() +
-        ggtitle("Word Count for Twitter Sample") +
         xlab(NULL) +
-        coord_flip()
-dev.off()
+        coord_flip() +
+        ggtitle('Top 10 Words in News (tokenizer)')
+
+p3 <- data.frame(word=df_twitter_1w) %>%
+        anti_join(stop_words) %>%
+        count(word, sort = TRUE) %>%
+        head(10) %>%
+        mutate(word = reorder(word, n)) %>%
+        ggplot(aes(word, n)) +
+        geom_col() +
+        xlab(NULL) +
+        coord_flip() +
+        ggtitle('Top 10 Words on Twitter (tokenizer)')
+
+grid.arrange(p1, p2, p3)
 ```
 
 
+## bigrams (ngrams with n=2) using 'tokenizer'
 
-```{r , echo=FALSE, message=FALSE}
-par(mfrow=c(1,1))
+
+```{r , echo=FALSE, message=FALSE, figure=TRUE, fig.align = "center", fig.width = 6, fig.asp =  1.2}
+p1 <- data.frame(word=df_blogs_2w) %>%
+        anti_join(stop_words) %>%
+        count(word, sort = TRUE) %>%
+        head(10) %>%
+        mutate(word = reorder(word, n)) %>%
+        ggplot(aes(word, n)) +
+        geom_col() +
+        xlab(NULL) +
+        coord_flip() +
+        ggtitle('Top 10 Bigrams in Blogs')
+
+p2 <- data.frame(word=df_news_2w) %>%
+        anti_join(stop_words) %>%
+        count(word, sort = TRUE) %>%
+        head(10) %>%
+        mutate(word = reorder(word, n)) %>%
+        ggplot(aes(word, n)) +
+        geom_col() +
+        xlab(NULL) +
+        coord_flip() +
+        ggtitle('Top 10 Bigrams in News')
+
+p3 <- data.frame(word=df_twitter_2w) %>%
+        anti_join(stop_words) %>%
+        count(word, sort = TRUE) %>%
+        head(10) %>%
+        mutate(word = reorder(word, n)) %>%
+        ggplot(aes(word, n)) +
+        geom_col() +
+        xlab(NULL) +
+        coord_flip() +
+        ggtitle('Top 10 Bigrams on Twitter')
+
+grid.arrange(p1, p2, p3)
+```
+
+## trigrams (ngrams with n=3) using 'tokenizer'
+
+```{r , echo=FALSE, message=FALSE, figure=TRUE, fig.align = "center", fig.width = 6, fig.asp =  1.2}
+p1 <- data.frame(word=df_blogs_3w) %>%
+        anti_join(stop_words) %>%
+        count(word, sort = TRUE) %>%
+        head(10) %>%
+        mutate(word = reorder(word, n)) %>%
+        ggplot(aes(word, n)) +
+        geom_col() +
+        xlab(NULL) +
+        coord_flip() +
+        ggtitle('Top 10 Trigrams in Blogs')
+
+p2 <- data.frame(word=df_news_3w) %>%
+        anti_join(stop_words) %>%
+        count(word, sort = TRUE) %>%
+        head(10) %>%
+        mutate(word = reorder(word, n)) %>%
+        ggplot(aes(word, n)) +
+        geom_col() +
+        xlab(NULL) +
+        coord_flip() +
+        ggtitle('Top 10 Trigrams in News')
+
+p3 <- data.frame(word=df_twitter_3w) %>%
+        anti_join(stop_words) %>%
+        count(word, sort = TRUE) %>%
+        head(10) %>%
+        mutate(word = reorder(word, n)) %>%
+        ggplot(aes(word, n)) +
+        geom_col() +
+        xlab(NULL) +
+        coord_flip() +
+        ggtitle('Top 10 Trigrams on Twitter')
+
+grid.arrange(p1, p2, p3)
+```
+
+## Relationship of words between datasets (With Code)
+
+```
+# Code Chunk
+
+##Frequency Table
+
+frequency <- bind_rows(mutate(data.frame(word = df_blogs_1w), author = "Blogs"),
+                       mutate(data.frame(word = df_news_1w), author = "News"), 
+                       mutate(data.frame(word = df_twitter_1w), author = "Twitter")) %>% 
+        mutate(word = str_extract(word,"[a-z']+")) %>%
+        count(author, word) %>%
+        group_by(author) %>%
+        mutate(proportion = n / sum(n)) %>% 
+        select(-n) %>% 
+        spread(author, proportion) %>% 
+        gather(author, proportion, `Blogs`:`News`)
+        
+##Visualization
+
 ggplot(frequency, aes(x = proportion, y = `Twitter`, color = abs(`Twitter` - proportion))) +
         geom_abline(color = "gray40", lty = 2) +
         geom_jitter(alpha = 0.1, size = 2.5, width = 0.3, height = 0.3) +
@@ -106,13 +292,33 @@ ggplot(frequency, aes(x = proportion, y = `Twitter`, color = abs(`Twitter` - pro
         facet_wrap(~author, ncol = 2) +
         theme(legend.position="none") +
         labs(y = "Twitter", x = NULL)
-dev.off()
+
 ```
 
-## How to solve the Assignment
+```{r , echo=FALSE, message=FALSE, figure=TRUE, fig.align = "center", fig.width = 5, fig.asp = .62}
+ggplot(frequency, aes(x = proportion, y = `Twitter`, color = abs(`Twitter` - proportion))) +
+        geom_abline(color = "gray40", lty = 2) +
+        geom_jitter(alpha = 0.1, size = 2.5, width = 0.3, height = 0.3) +
+        geom_text(aes(label = word), check_overlap = TRUE, vjust = 1.5) +
+        scale_x_log10(labels = percent_format()) +
+        scale_y_log10(labels = percent_format()) +
+        scale_color_gradient(limits = c(0, 0.001), low = "darkslategray4", high = "gray75") +
+        facet_wrap(~author, ncol = 2) +
+        theme(legend.position="none") +
+        labs(y = "Twitter", x = NULL)
+```
 
-* Source: https://www.tidytextmining.com/
-* On Basis of this book methods will be applied.
-* For each medium (Blog, News, Twitter) a prediction library is build
-* A library for own texts is build
-* Libraries are predicting connectively
+# How to solve the Assignment
+
+1. https://www.tidytextmining.com/ provides an useful approach for how to solve the assignment
+    * Frequency Analysis is used
+    * (Optional) Sentiment Analysis seems like a good candidate to enhance my approach
+2. I will test, if a similar approach is also applicable with the 'tokenizer' package as it provided a simple and strong tool for the first visualizations.
+3. The prediction system I intent to build up shall differentiate between source
+    * The three datasets give three different source
+    * (Optional) My shiny application shall differentiate between these source as to give the user to build his own library
+    * (Optional) A fourth option will added for all datasets at the same time
+    * (Optional) Inputs shall be gathered and used to individualize the predictions to the user.
+        
+        
+*I do not know, how applicable each step is. These are all ideas, I would try to implement. If I run short of time, I will focus on the most important part, which is to create a working predictive machine.*

@@ -1,5 +1,9 @@
 ##Application of TIDYTEXT Analysis (https://www.tidytextmining.com/tidytext.html)
 
+#Empty Environment
+rm(list=ls())
+cat("\f")
+
 #Packages
 library(readr)
 library(dplyr)
@@ -10,16 +14,27 @@ library(scales)
 library(stringr)
 
 #Testdata
-blogs <- read_rds("df_blogs_test.RDS")
-news <- read_rds("df_news_test.RDS")
-twitter <- read_rds("df_twitter_test.RDS")
-df_blogs <- data_frame(line = 1:length(blogs), text = blogs)
-df_news <- data_frame(line = 1:length(news), text = news)
-df_twitter <- data_frame(line = 1:length(twitter), text = twitter)
-rm(blogs,news,twitter)
+source('create_example.R')
+read_examples()
+
+df_blogs <- data_frame(line = 1:length(df_blogs), text = df_blogs)
+df_news <- data_frame(line = 1:length(df_news), text = df_news)
+df_twitter <- data_frame(line = 1:length(df_twitter), text = df_twitter)
+
 df_blogs <- df_blogs %>% unnest_tokens(word, text) %>% anti_join(stop_words)
 df_news <- df_news %>% unnest_tokens(word, text) %>% anti_join(stop_words)
 df_twitter <- df_twitter %>% unnest_tokens(word, text) %>% anti_join(stop_words)
+
+df_twitter_1w <- unlist(tokenize_ngrams(df_twitter, n=1, simplify=TRUE))
+df_twitter_2w <- unlist(tokenize_ngrams(df_twitter, n=2, simplify=TRUE))
+df_twitter_3w <- unlist(tokenize_ngrams(df_twitter, n=3, simplify=TRUE))
+
+library(tm)
+library(textmineR)
+library(tokenizers)
+my_tokenizer <- NgramTokenizer(min=2, max=3)
+df_twitter_2w <- tm::DocumentTermMatrix(corp, df_twitter=list(tokenize=my_tokenizer))
+df_twitter_2w <- MakeSparseDTM(df_twitter_2w)
 
 #Realdata
 load("text_to_upload.RData")
@@ -43,7 +58,8 @@ df_blogs %>%
         ggplot(aes(word, n)) +
         geom_col() +
         xlab(NULL) +
-        coord_flip()
+        coord_flip() +
+        ggtitle('Top 10 Words in Blogs')
 
 df_news %>%
         anti_join(stop_words) %>%
@@ -53,7 +69,8 @@ df_news %>%
         ggplot(aes(word, n)) +
         geom_col() +
         xlab(NULL) +
-        coord_flip()
+        coord_flip() +
+        ggtitle('Top 10 Words in News')
 
 df_twitter %>%
         anti_join(stop_words) %>%
@@ -63,7 +80,8 @@ df_twitter %>%
         ggplot(aes(word, n)) +
         geom_col() +
         xlab(NULL) +
-        coord_flip()
+        coord_flip() +
+        ggtitle('Top 10 Words on Twitter')
 
 ###########################
 
@@ -94,3 +112,16 @@ cor.test(data = frequency[frequency$author == "Blogs",],
 
 cor.test(data = frequency[frequency$author == "News",], 
          ~ proportion + `Twitter`)$estimate
+
+
+############OLD from Assignment1.Rmd
+
+
+df_blogs <- data_frame(line = 1:length(df_blogs), text = df_blogs)
+df_blogs <- df_blogs %>% unnest_tokens(word, text) %>% anti_join(stop_words)
+
+df_news <- data_frame(line = 1:length(df_news), text = df_news)
+df_news <- df_news %>% unnest_tokens(word, text) %>% anti_join(stop_words)
+
+df_twitter <- data_frame(line = 1:length(df_twitter), text = df_twitter)
+df_twitter <- df_twitter %>% unnest_tokens(word, text) %>% anti_join(stop_words)
