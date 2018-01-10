@@ -1,7 +1,7 @@
 ---
 title: "Assignment1 - Overview Data"
 author: "Ramón Roales-Welsch"
-date: "10 January 2018"
+date: "09 January 2018"
 output:
   html_document:
     toc: true
@@ -34,15 +34,10 @@ rm(list=ls())
 gc()
 
 ```
-```{r sampling,include=FALSE, cache=TRUE}
-#Sampling over 100,000
-df_blogs <- sample(read_rds('blogs_input.RDS'),100000)
-df_news <- sample(read_rds('news_input.RDS'),100000)
-df_twitter <- sample(read_rds('twitter_input.RDS'),100000)
 
-```
-```{r calculations_blogs,include=FALSE, cache=TRUE}
-#Blogs
+```{r calculation_blogs,include=FALSE, cache=TRUE}
+##Blogs
+df_blogs <- read_rds('blogs_input.RDS')
 lines_df_blogs <- length(df_blogs)
 df_blogs_1w <- tokenize_ngrams(df_blogs, n=1, simplify=TRUE)
 df_blogs_2w <- unlist(tokenize_ngrams(df_blogs, n=2, simplify=TRUE))
@@ -56,10 +51,15 @@ words_df_blogs <- length(df_blogs_1w)
 word_length_blogs <- mean(nchar(df_blogs_1w))
 Blogs <- c(lines_df_blogs, words_df_blogs, mean(words_per_line_blogs), word_length_blogs)
 rm(df_blogs, lines_df_blogs, words_df_blogs, words_per_line_blogs, word_length_blogs)
+write_rds(df_blogs_1w, 'blogs1w_input.RDS')
+write_rds(df_blogs_2w, 'blogs2w_input.RDS')
+write_rds(df_blogs_3w, 'blogs3w_input.RDS')
+rm(df_blogs_1w, df_blogs_2w, df_blogs_3w)
 ```
 
-```{r calculations_news,include=FALSE, cache=TRUE}
+```{r calculation_news,include=FALSE, cache=TRUE}
 ##News
+df_news <- read_rds('news_input.RDS')
 lines_df_news <- length(df_news)
 df_news_1w <- tokenize_ngrams(df_news, n=1, simplify=TRUE)
 df_news_2w <- unlist(tokenize_ngrams(df_news, n=2, simplify=TRUE))
@@ -73,10 +73,15 @@ words_df_news <- length(df_news_1w)
 word_length_news <- mean(nchar(df_news_1w))
 News <- c(lines_df_news,words_df_news,mean(words_per_line_news),word_length_news)
 rm(df_news, lines_df_news,words_df_news,words_per_line_news,word_length_news)
+write_rds(df_news_1w, 'news1w_input.RDS')
+write_rds(df_news_2w, 'news2w_input.RDS')
+write_rds(df_news_3w, 'news3w_input.RDS')
+rm(df_news_1w, df_news_2w, df_news_3w)
 ```
 
-```{r calculations_twitter,include=FALSE, cache=TRUE}
-#Twitter
+```{r calculation_twitter,include=FALSE, cache=TRUE}
+##Twitter
+df_twitter <- read_rds('twitter_input.RDS')
 lines_df_twitter <- length(df_twitter)
 df_twitter_1w <- tokenize_ngrams(df_twitter, n=1, simplify=TRUE)
 df_twitter_2w <- unlist(tokenize_ngrams(df_twitter, n=2, simplify=TRUE))
@@ -90,6 +95,10 @@ words_df_twitter <- length(df_twitter_1w)
 word_length_twitter <- mean(nchar(df_twitter_1w))
 Twitter <- c(lines_df_twitter,words_df_twitter,mean(words_per_line_twitter),word_length_twitter)
 rm(df_twitter, lines_df_twitter,words_df_twitter,words_per_line_twitter,word_length_twitter)
+write_rds(df_twitter_1w, 'twitter1w_input.RDS')
+write_rds(df_twitter_2w, 'twitter2w_input.RDS')
+write_rds(df_twitter_3w, 'twitter3w_input.RDS')
+rm(df_twitter_1w, df_twitter_2w, df_twitter_3w)
 ```
 
 ```{r calculation_tables,include=FALSE, cache=TRUE}
@@ -98,6 +107,10 @@ overview <- data.frame(rbind(Blogs, News, Twitter))
 row.names(overview) <- c("Blogs", "News", "Twitter")
 
 ##Frequency Table
+df_blogs_1w <- read_rds('blogs1w_input.RDS')
+df_news_1w <- read_rds('news1w_input.RDS')
+df_twitter_1w <- read_rds('twitter1w_input.RDS')
+
 frequency <- bind_rows(mutate(data.frame(word = df_blogs_1w), author = "Blogs"),
                        mutate(data.frame(word = df_news_1w), author = "News"), 
                        mutate(data.frame(word = df_twitter_1w), author = "Twitter")) %>% 
@@ -108,6 +121,8 @@ frequency <- bind_rows(mutate(data.frame(word = df_blogs_1w), author = "Blogs"),
         select(-n) %>% 
         spread(author, proportion) %>% 
         gather(author, proportion, `Blogs`:`News`)
+rm(df_blogs_1w, df_news_1w, df_twitter_1w)
+gc()
 ```
 
 # Executive Summary
@@ -118,14 +133,12 @@ This is the first assignment for the Data Science Specialization Captstone Proje
 * en_US.news.txt
 * en_US.twitter.txt
 
-The datasets are provided for the Capstone Project and can be retrieved from [Coursera](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip  "Coursera Swiftkey Datasample"). For performance reasons the data has been sampled over 100,000 observations.
+The datasets are provided for the Capstone Project and can be retrieved from [Coursera](https://d396qusza40orc.cloudfront.net/dsscapstone/dataset/Coursera-SwiftKey.zip  "Coursera Swiftkey Datasample").
 
-# Data Summary (Sampled over 100,000)
+# Data Summary
 
-```{r overview,echo=FALSE, results='asis'}
-kable(overview, 
-      caption = "Overview Table for the three Datasets",
-      col.names = c("Input Lines", "Total Words", "Avrg. Words per Line", "Avrg. Length of Words"))
+```{r echo=FALSE, results='asis'}
+kable(overview, caption = "Overview Table for the three Datasets")
 
 ```
 
@@ -137,11 +150,11 @@ My first attempts were with the package 'tidytext' following instructions from h
 
 
 ```
-# Code example inkl. Sampling over 100,000
+# Code example
 
 ##Tokenizing
 
-df_twitter <- sample(readLines('source'),100000)
+df_twitter <- readLines('source')
 df_twitter_1w <- unlist(tokenize_ngrams(df_twitter, n=1, simplify=TRUE))
 
 ##Visualization
@@ -159,7 +172,12 @@ data.frame(word=df_twitter_1w) %>%
 
 ```
 
-```{r plot_singlegrams, cache=TRUE, echo=FALSE, message=FALSE, figure=TRUE, fig.align = "center", fig.width = 6, fig.asp =  1.2}
+```{r , echo=FALSE, message=FALSE, figure=TRUE, fig.align = "center", fig.width = 6, fig.asp =  1.2}
+
+df_blogs_1w <- read_rds('blogs1w_input.RDS')
+df_news_1w <- read_rds('news1w_input.RDS')
+df_twitter_1w <- read_rds('twitter1w_input.RDS')
+
 p1 <- data.frame(word=df_blogs_1w) %>%
         anti_join(stop_words) %>%
         count(word, sort = TRUE) %>%
@@ -194,13 +212,20 @@ p3 <- data.frame(word=df_twitter_1w) %>%
         ggtitle('Top 10 Words on Twitter (tokenizer)')
 
 grid.arrange(p1, p2, p3)
+
+rm(df_blogs_1w, df_news_1w, df_twitter_1w)
 ```
 
 
 ## bigrams (ngrams with n=2) using 'tokenizer'
 
 
-```{r plot_bigrams, cache=TRUE, echo=FALSE, message=FALSE, figure=TRUE, fig.align = "center", fig.width = 6, fig.asp =  1.2}
+```{r , echo=FALSE, message=FALSE, figure=TRUE, fig.align = "center", fig.width = 6, fig.asp =  1.2}
+
+df_blogs_2w <- read_rds('blogs2w_input.RDS')
+df_news_2w <- read_rds('news2w_input.RDS')
+df_twitter_2w <- read_rds('twitter2w_input.RDS')
+
 p1 <- data.frame(word=df_blogs_2w) %>%
         anti_join(stop_words) %>%
         count(word, sort = TRUE) %>%
@@ -235,11 +260,17 @@ p3 <- data.frame(word=df_twitter_2w) %>%
         ggtitle('Top 10 Bigrams on Twitter')
 
 grid.arrange(p1, p2, p3)
+
+rm(df_blogs_2w, df_news_2w, df_twitter_2w)
 ```
 
 ## trigrams (ngrams with n=3) using 'tokenizer'
 
-```{r plot_trigrams, cache=TRUE, echo=FALSE, message=FALSE, figure=TRUE, fig.align = "center", fig.width = 6, fig.asp =  1.2}
+```{r , echo=FALSE, message=FALSE, figure=TRUE, fig.align = "center", fig.width = 6, fig.asp =  1.2}
+
+df_blogs_3w <- read_rds('blogs3w_input.RDS')
+df_news_3w <- read_rds('news3w_input.RDS')
+df_twitter_3w <- read_rds('twitter3w_input.RDS')
 
 p1 <- data.frame(word=df_blogs_3w) %>%
         anti_join(stop_words) %>%
@@ -276,6 +307,8 @@ p3 <- data.frame(word=df_twitter_3w) %>%
 
 grid.arrange(p1, p2, p3)
 
+rm(df_blogs_3w, df_news_3w, df_twitter_3w)
+
 ```
 
 ## Relationship of words between datasets (With Code)
@@ -311,7 +344,7 @@ ggplot(frequency, aes(x = proportion, y = `Twitter`, color = abs(`Twitter` - pro
 
 ```
 
-```{r frequency_graph, echo=FALSE, message=FALSE, figure=TRUE, fig.align = "center", fig.width = 5, fig.asp = .62, cache=TRUE}
+```{r , echo=FALSE, message=FALSE, figure=TRUE, fig.align = "center", fig.width = 5, fig.asp = .62}
 ggplot(frequency, aes(x = proportion, y = `Twitter`, color = abs(`Twitter` - proportion))) +
         geom_abline(color = "gray40", lty = 2) +
         geom_jitter(alpha = 0.1, size = 2.5, width = 0.3, height = 0.3) +
