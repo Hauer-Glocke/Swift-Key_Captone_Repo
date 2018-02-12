@@ -32,7 +32,7 @@ df_twitter_3w <- unlist(tokenize_ngrams(df_twitter, n=3, simplify=TRUE))
 library(tm)
 library(textmineR)
 library(tokenizers)
-my_tokenizer <- NgramTokenizer(min=2, max=3)
+my_tokenizer <- textmineR::NgramTokenizer(min=2, max=3)
 df_twitter_2w <- tm::DocumentTermMatrix(corp, df_twitter=list(tokenize=my_tokenizer))
 df_twitter_2w <- MakeSparseDTM(df_twitter_2w)
 
